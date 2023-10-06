@@ -1,0 +1,2 @@
+GitPython==3.1.37
+python_gitlab==3.15.0
