@@ -1,0 +1,18 @@
+compile_pdf:
+  stage: build
+  image: timnn/texlive
+  script: pdflatex main.tex
+  artifacts:
+    paths: 
+      - main.pdf
+
+pages:
+  stage: deploy
+  script:
+    - mkdir public
+    - cp main.pdf public
+  artifacts:
+    paths: 
+      - public
+  only: 
+    - master
