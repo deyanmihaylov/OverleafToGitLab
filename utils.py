@@ -41,6 +41,12 @@ def snakestyle_string(string: str) -> str:
     string = string.replace(' ', '_')
     return string
 
+def rename_folder(path: str, new_name: str) -> None:
+    try:
+        os.rename(path, new_name)
+    except:
+        sys.exit("rename_folder() failed")
+
 
 if __name__ == "__main__":
     pass
