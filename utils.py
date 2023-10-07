@@ -49,8 +49,8 @@ def snakestyle_string(string: str) -> str:
 def rename_folder(path: str, new_name: str) -> None:
     try:
         os.rename(path, new_name)
-    except:
-        sys.exit("rename_folder() failed")
+    except Exception as e:
+        print(f"An exception occurred: {e}")
 
 
 if __name__ == "__main__":
