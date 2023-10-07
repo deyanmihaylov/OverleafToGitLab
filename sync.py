@@ -8,7 +8,7 @@ import argparse
 from utils import *
 
 
-class SynchedRepo(ABC):
+class SyncedRepo(ABC):
     def __init__(
         self,
         url: str = None,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
     args = parser.parse_args()
 
-    sync = SynchedRepo(
+    sync = SyncedRepo(
         url = args.url,
         hash_slug=args.hash,
         target_dir=args.dir,
