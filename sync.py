@@ -2,12 +2,14 @@ from abc import ABC
 from git import Repo
 import gitlab
 import os
+from pathlib import Path
+import argparse
 
 from utils import *
 
 
 class SynchedRepo(ABC):
-    def _init_(
+    def __init__(
         self,
         url: str = None,
         hash_slug: str = None,
@@ -18,6 +20,10 @@ class SynchedRepo(ABC):
         self.download_directory = None
         self.new_directory = None
         self.directory = None
+        self.download_success = False
+        self.title = None
+        self.hyphenated_title = None
+        self.snakestyle_title = None
 
         if url is None and hash_slug is None:
             raise ValueError
@@ -39,11 +45,6 @@ class SynchedRepo(ABC):
                 self.target_directory = os.path.join(target_dir, self.hash)
                 self.directory = self.target_directory
 
-        self.download_success = False
-        self.title = None
-        self.hyphenated_title = None
-        self.snakestyle_title = None
-        
     def download_Overleaf_project(self) -> None:
         try:
             Repo.clone_from(self.url, self.target_directory)
@@ -102,6 +103,19 @@ class SynchedRepo(ABC):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="OverleafToGitLab")
+    parser.add_argument("--url", default=None)
+    parser.add_argument("--hash", default=None)
+    parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
+    args = parser.parse_args()
+
+    sync = SynchedRepo(
+        url = args.url,
+        hash_slug=args.hash,
+        target_dir=args.dir,
+    )
+    
+    exit()
     url = "https://git.overleaf.com/626b9df2eca2e09002ab2ac3"
     hash_slug = get_hash_from_url(url)
 
