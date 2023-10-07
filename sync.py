@@ -1,10 +1,7 @@
 from abc import ABC
 from git import Repo
 import gitlab
-import re
 import os
-import glob
-import sys
 
 from utils import *
 
@@ -64,11 +61,8 @@ class SynchedRepo(ABC):
             "/Users/deyanmihaylov/Documents/Work/Papers",
             self.snakestyle_title,
         )
-        try:
-            rename_folder(self.directory, self.new_directory)
-            self.directory = self.new_directory
-        except Exception as e:
-            print(f"An exception occurred: {e}")
+        rename_folder(self.directory, self.new_directory)
+        self.directory = self.new_directory
 
     def create_empty_GitLab_repo(self):
         try:
