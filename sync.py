@@ -1,3 +1,4 @@
+from abc import ABC
 from git import Repo
 import gitlab
 import re
@@ -5,9 +6,24 @@ import os
 import glob
 import sys
 
-def get_hash_from_url(url: str) -> str:
-    hash = url.rsplit('/', 1)[-1]
-    return hash
+
+class SynchedRepo(ABC):
+    def _init_(self, url: str = None, hash_slug: str = None) -> None:
+        if url is None and hash_slug is None:
+            raise ValueError
+        elif url is None:
+            self.hash = hash_slug
+            self.url = get_Overleaf_url_from_hash(self.hash)
+        elif hash_slug is None:
+            self.url = url
+            self.hash = get_hash_from_Overleaf_url(self.url)
+        else:
+            raise ValueError
+
+
+
+
+
 
 def get_title_from_project(directory: str) -> str:
     main_file = "main.tex"
@@ -69,7 +85,7 @@ if __name__ == "__main__":
     gl.auth()
 
     title = get_title_from_project(target_directory)
-    title = hyphenate_string(title)
+    title_hyphenated = hyphenate_string(title)
 
     response = gl.projects.create({
         "name": title,
