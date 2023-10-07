@@ -6,9 +6,22 @@ import os
 import glob
 import sys
 
+from utils import *
+
 
 class SynchedRepo(ABC):
-    def _init_(self, url: str = None, hash_slug: str = None) -> None:
+    def _init_(
+        self,
+        url: str = None,
+        hash_slug: str = None,
+        target_dir: str = None,
+    ) -> None:
+        self.url = None
+        self.hash = None
+        self.download_directory = None
+        self.new_directory = None
+        self.directory = None
+
         if url is None and hash_slug is None:
             raise ValueError
         elif url is None:
@@ -20,56 +33,78 @@ class SynchedRepo(ABC):
         else:
             raise ValueError
 
+        if target_dir is None:
+            raise ValueError
+        else:
+            if not os.path.isdir(target_dir):
+                raise ValueError
+            else:
+                self.target_directory = os.path.join(target_dir, self.hash)
+                self.directory = self.target_directory
 
+        self.download_success = False
+        self.title = None
+        self.hyphenated_title = None
+        self.snakestyle_title = None
+        
+    def download_Overleaf_project(self) -> None:
+        try:
+            Repo.clone_from(self.url, self.target_directory)
+            self.download_success = True
+        except Exception as e:
+            print(f"An exception occurred: {e}")
 
+    def get_title(self) -> None:
+        self.title = get_title_from_LaTeX_project(self.target_directory)
+        self.hyphenated_title = hyphenate_string(self.title)
+        self.snakestyle_title = snakestyle_string(self.title)
 
+    def rename_directory(self) -> None:
+        self.new_directory = os.path.join(
+            "/Users/deyanmihaylov/Documents/Work/Papers",
+            self.snakestyle_title,
+        )
+        try:
+            rename_folder(self.directory, self.new_directory)
+            self.directory = self.new_directory
+        except Exception as e:
+            print(f"An exception occurred: {e}")
 
+    def create_empty_GitLab_repo(self):
+        try:
+            with open("./secret.txt", "r") as f:
+                gitlab_token = f.read().strip()
+        except BaseException as e:
+            gitlab_token = input("Enter GitLab access token:\n")
 
-def get_title_from_project(directory: str) -> str:
-    main_file = "main.tex"
-    if os.path.isfile(os.path.join(directory, main_file)):
-        title_line = extract_title_from_TeX_file(os.path.join(directory, main_file))
-    else:
-        for filepath in glob.glob(os.path.join(directory, "*.tex")):
-            title_line = extract_title_from_TeX_file(filepath)
-            if title_line != "":
-                break
-    title = get_title_from_latex_line(title_line)
-    return title
+        gl = gitlab.Gitlab(
+            "https://gitlab.com/",
+            private_token=gitlab_token,
+            api_version=4,
+        )
+        gl.auth()
+        response = gl.projects.create({
+            "name": self.title,
+            "path": self.hash,
+        })
 
-def extract_title_from_TeX_file(filepath: str) -> str:
-    with open(filepath, "r") as file:
-        for line in file:
-            if re.search(r"\\title", line):
-                title_line = line
-    return title_line.strip()
+    def add_GitLab_remote(self) -> None:
+        with os.chdir(new_directory):
+            os.system(f"git remote add gitlab git@gitlab.com:deyanmihaylov/{self.hash}.git")
+            os.system(f"git remote set-url origin --add --push https://git.overleaf.com/{self.hash}")
+            os.system(f"git remote set-url origin --add --push git@gitlab.com:deyanmihaylov/{self.hash}.git")
+        
+    def push_to_GitLab(self) -> None:
+        with os.chdir(new_directory):
+            os.system("git push gitlab")
 
-def get_title_from_latex_line(line: str) -> str:
-    line = line.replace(r"\\title", '')
-    first_bracket = line.find("{")
-    last_bracket = line.rfind("}")
-    return line[(first_bracket+1):last_bracket]
-
-def hyphenate_string(string: str) -> str:
-    string = re.sub(" +", ' ', string)
-    string = string.replace(' ', '-')
-    return string
-
-def rename_folder(path: str, new_name: str) -> None:
-    try:
-        os.rename(path, new_name)
-    except:
-        sys.exit("rename_folder() failed")
-
-def add_GitLab_remote() -> None:
-    with os.chdir(new_directory):
-        os.system(f"git remote add gitlab git@gitlab.com:deyanmihaylov/{hash_slug}.git")
-        os.system(f"git remote set-url origin --add --push https://git.overleaf.com/{hash_slug}")
-        os.system(f"git remote set-url origin --add --push git@gitlab.com:deyanmihaylov/{hash_slug}.git")
-
-def push_to_GitLab() -> None:
-    with os.chdir(new_directory):
-        os.system("git push gitlab")
+    def __call__(self):
+        self.download_Overleaf_project()
+        self.get_title()
+        self.rename_directory()
+        self.create_empty_GitLab_repo()
+        self.add_GitLab_remote()
+        self.push_to_GitLab()
 
 
 if __name__ == "__main__":
