@@ -1,3 +1,8 @@
+import os
+import glob
+import re
+
+
 def get_Overleaf_url_from_hash(hash_slug: str) -> str:
     url = f"https://git.overleaf.com/{hash_slug}"
     return url
