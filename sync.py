@@ -57,8 +57,7 @@ class SyncedRepo(ABC):
 
     def rename_directory(self) -> None:
         self.new_directory = os.path.join(
-            "/Users/deyanmihaylov/Documents/Work/Papers",
-            self.snakestyle_title,
+            self.input_dir, self.snakestyle_title,
         )
         rename_folder(self.directory, self.new_directory)
         self.directory = self.new_directory
