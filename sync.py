@@ -7,6 +7,8 @@ import argparse
 
 from utils import *
 
+from typing import Tuple
+
 
 class SyncedRepo(ABC):
     def __init__(
@@ -37,7 +39,7 @@ class SyncedRepo(ABC):
                 self.target_directory = os.path.join(target_dir, self.hash)
                 self.directory = self.target_directory
 
-    def _parse_input(self):
+    def _parse_input(self) -> Tuple[str, str, str]:
         return get_urls_and_hash(self.input)
 
     def download_Overleaf_project(self) -> None:
@@ -103,14 +105,9 @@ if __name__ == "__main__":
     parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
     args = parser.parse_args()
 
-    print(args.url_or_hash)
-    for x in get_urls_and_hash(args.url_or_hash):
-        print(x)
-    exit()
-
     sync = SyncedRepo(
-        url_or_hash=args.url_or_hash,
-        target_dir=args.dir,
+        url_or_hash = args.url_or_hash,
+        target_dir = args.dir,
     )
     
     url = "https://git.overleaf.com/626b9df2eca2e09002ab2ac3"
