@@ -14,7 +14,9 @@ class SyncedRepo(ABC):
         url_or_hash: str,
         target_dir: str = None,
     ) -> None:
-        self.url = None
+        self.input = url_or_hash
+        self.www_url = None
+        self.git_url = None
         self.hash = None
         self.download_directory = None
         self.new_directory = None
@@ -24,16 +26,7 @@ class SyncedRepo(ABC):
         self.hyphenated_title = None
         self.snakestyle_title = None
 
-        if url is None and hash_slug is None:
-            raise ValueError
-        elif url is None:
-            self.hash = hash_slug
-            self.url = get_Overleaf_url_from_hash(self.hash)
-        elif hash_slug is None:
-            self.url = url
-            self.hash = get_hash_from_Overleaf_url(self.url)
-        else:
-            raise ValueError
+        self.www_url, self.git_url, self.hash = self._parse_input(self.input)
 
         if target_dir is None:
             raise ValueError
@@ -43,6 +36,9 @@ class SyncedRepo(ABC):
             else:
                 self.target_directory = os.path.join(target_dir, self.hash)
                 self.directory = self.target_directory
+
+    def _parse_input(self):
+        return get_urls_and_hash(self.input)
 
     def download_Overleaf_project(self) -> None:
         try:
@@ -100,36 +96,7 @@ class SyncedRepo(ABC):
         self.add_GitLab_remote()
         self.push_to_GitLab()
 
-def get_urls_and_hash(url_or_hash):
-    """
-    https://www.overleaf.com/project/5cfacaa5a39cd676c26e6332
-    https://git.overleaf.com/5cfacaa5a39cd676c26e6332
-    5cfacaa5a39cd676c26e6332
-    """
-    if url_or_hash[:33] == "https://www.overleaf.com/project/":
-        www_url = url_or_hash
-        git_url = url_or_hash.replace(
-            "https://www.overleaf.com/project/", "https://git.overleaf.com/",
-        )
-        hash_slug = url_or_hash.replace(
-            "https://www.overleaf.com/project/", '',
-        )
-    elif url_or_hash[:25] == "https://git.overleaf.com/":
-        www_url = url_or_hash.replace(
-            "https://git.overleaf.com/", "https://www.overleaf.com/project/",
-        )
-        git_url = url_or_hash
-        hash_slug = url_or_hash.replace(
-            "https://git.overleaf.com/", '',
-        )
-    elif url_or_hash.isalnum():
-        www_url = f"https://www.overleaf.com/project/{url_or_hash}"
-        git_url = f"https://git.overleaf.com/{url_or_hash}"
-        hash_slug = url_or_hash
-    else:
-        raise Exception("URL not recognised")
 
-    return www_url, git_url, hash_slug
 
 
 if __name__ == "__main__":
