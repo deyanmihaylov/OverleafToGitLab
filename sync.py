@@ -11,8 +11,7 @@ from utils import *
 class SyncedRepo(ABC):
     def __init__(
         self,
-        url: str = None,
-        hash_slug: str = None,
+        url_or_hash: str,
         target_dir: str = None,
     ) -> None:
         self.url = None
@@ -101,6 +100,37 @@ class SyncedRepo(ABC):
         self.add_GitLab_remote()
         self.push_to_GitLab()
 
+def get_urls_and_hash(url_or_hash):
+    """
+    https://www.overleaf.com/project/5cfacaa5a39cd676c26e6332
+    https://git.overleaf.com/5cfacaa5a39cd676c26e6332
+    5cfacaa5a39cd676c26e6332
+    """
+    if url_or_hash[:33] == "https://www.overleaf.com/project/":
+        www_url = url_or_hash
+        git_url = url_or_hash.replace(
+            "https://www.overleaf.com/project/", "https://git.overleaf.com/",
+        )
+        hash_slug = url_or_hash.replace(
+            "https://www.overleaf.com/project/", '',
+        )
+    elif url_or_hash[:25] == "https://git.overleaf.com/":
+        www_url = url_or_hash.replace(
+            "https://git.overleaf.com/", "https://www.overleaf.com/project/",
+        )
+        git_url = url_or_hash
+        hash_slug = url_or_hash.replace(
+            "https://git.overleaf.com/", '',
+        )
+    elif url_or_hash.isalnum():
+        www_url = f"https://www.overleaf.com/project/{url_or_hash}"
+        git_url = f"https://git.overleaf.com/{url_or_hash}"
+        hash_slug = url_or_hash
+    else:
+        raise Exception("URL not recognised")
+
+    return www_url, git_url, hash_slug
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="OverleafToGitLab")
@@ -110,9 +140,13 @@ if __name__ == "__main__":
     parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
     args = parser.parse_args()
 
+    print(args.url_or_hash)
+    for x in get_urls_and_hash(args.url_or_hash):
+        print(x)
+    exit()
+
     sync = SyncedRepo(
-        url=args.url,
-        hash_slug=args.hash,
+        url_or_hash=args.url_or_hash,
         target_dir=args.dir,
     )
     
