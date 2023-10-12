@@ -2,8 +2,8 @@ from abc import ABC
 from git import Repo
 import gitlab
 import os
-from pathlib import Path
 import argparse
+import getpass
 
 from utils import *
 
@@ -16,7 +16,9 @@ class SyncedRepo(ABC):
         url_or_hash: str,
         target_dir: str = None,
     ) -> None:
-        self.input = url_or_hash
+        self.input_url_or_hash = url_or_hash
+        self.input_dir = target_dir
+
         self.www_url = None
         self.git_url = None
         self.hash = None
@@ -28,23 +30,22 @@ class SyncedRepo(ABC):
         self.hyphenated_title = None
         self.snakestyle_title = None
 
-        self.www_url, self.git_url, self.hash = self._parse_input(self.input)
+        self.www_url, self.git_url, self.hash = self._parse_input()
 
-        if target_dir is None:
-            raise ValueError
+        if self.input_dir is None:
+            raise Exception("The target directory cannot be None")
+        elif not os.path.isdir(self.input_dir):
+            raise Exception(f"{self.input_dir} is not a directory")
         else:
-            if not os.path.isdir(target_dir):
-                raise ValueError
-            else:
-                self.target_directory = os.path.join(target_dir, self.hash)
-                self.directory = self.target_directory
+            self.target_directory = os.path.join(self.input_dir, self.hash)
+            self.directory = self.target_directory
 
     def _parse_input(self) -> Tuple[str, str, str]:
-        return get_urls_and_hash(self.input)
+        return get_urls_and_hash(self.input_url_or_hash)
 
     def download_Overleaf_project(self) -> None:
         try:
-            Repo.clone_from(self.url, self.target_directory)
+            Repo.clone_from(self.git_url, self.target_directory)
             self.download_success = True
         except Exception as e:
             print(f"An exception occurred: {e}")
@@ -67,7 +68,7 @@ class SyncedRepo(ABC):
             with open("./secret.txt", "r") as f:
                 gitlab_token = f.read().strip()
         except BaseException as e:
-            gitlab_token = input("Enter GitLab access token:\n")
+            gitlab_token = getpass.getpass("Enter GitLab access token:\n")
 
         gl = gitlab.Gitlab(
             "https://gitlab.com/",
@@ -79,6 +80,7 @@ class SyncedRepo(ABC):
             "name": self.title,
             "path": self.hash,
         })
+        print(response)
 
     def add_GitLab_remote(self) -> None:
         with os.chdir(new_directory):
@@ -102,39 +104,35 @@ class SyncedRepo(ABC):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="OverleafToGitLab")
     parser.add_argument("url_or_hash")
-    parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
+    parser.add_argument("--dir", default=os.getcwd())
     args = parser.parse_args()
 
     sync = SyncedRepo(
         url_or_hash = args.url_or_hash,
         target_dir = args.dir,
     )
+
+    sync()
     
-    url = "https://git.overleaf.com/626b9df2eca2e09002ab2ac3"
-    hash_slug = get_hash_from_url(url)
-
-    target_directory = os.path.join("/Users/deyanmihaylov/Documents/Work/Papers", hash_slug)
-    Repo.clone_from(url, target_directory)
+    # with open("./secret.txt", "r") as f: gitlab_token = f.read().strip()
     
-    with open("./secret.txt", "r") as f: gitlab_token = f.read().strip()
-    
-    gl = gitlab.Gitlab("https://gitlab.com/", private_token=gitlab_token, api_version=4)
-    gl.auth()
+    # gl = gitlab.Gitlab("https://gitlab.com/", private_token=gitlab_token, api_version=4)
+    # gl.auth()
 
-    title = get_title_from_project(target_directory)
-    title_hyphenated = hyphenate_string(title)
+    # title = get_title_from_project(target_directory)
+    # title_hyphenated = hyphenate_string(title)
 
-    response = gl.projects.create({
-        "name": title,
-        "path": hash_slug,
-    })
+    # response = gl.projects.create({
+    #     "name": title,
+    #     "path": hash_slug,
+    # })
 
-    new_directory = os.path.join("/Users/deyanmihaylov/Documents/Work/Papers", title)
+    # new_directory = os.path.join("/Users/deyanmihaylov/Documents/Work/Papers", title)
 
-    rename_folder(target_directory, new_directory)
+    # rename_folder(target_directory, new_directory)
 
-    os.chdir(new_directory)
+    # os.chdir(new_directory)
 
-    add_GitLab_remote()
-    push_to_GitLab()
+    # add_GitLab_remote()
+    # push_to_GitLab()
 
