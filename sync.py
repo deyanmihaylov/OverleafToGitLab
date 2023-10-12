@@ -104,18 +104,18 @@ class SyncedRepo(ABC):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="OverleafToGitLab")
-    parser.add_argument("--url", default=None)
-    parser.add_argument("--hash", default=None)
+    # parser.add_argument("--url", default=None)
+    # parser.add_argument("--hash", default=None)
+    parser.add_argument("url_or_hash")
     parser.add_argument("--dir", default="/Users/deyanmihaylov/Documents/Work/Papers")
     args = parser.parse_args()
 
     sync = SyncedRepo(
-        url = args.url,
+        url=args.url,
         hash_slug=args.hash,
         target_dir=args.dir,
     )
     
-    exit()
     url = "https://git.overleaf.com/626b9df2eca2e09002ab2ac3"
     hash_slug = get_hash_from_url(url)
 
