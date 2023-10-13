@@ -4,6 +4,7 @@ import gitlab
 import os
 import argparse
 import getpass
+import shutil
 
 from typing import Tuple
 
@@ -112,6 +113,30 @@ class SyncedRepo(ABC):
         os.system("git push gitlab")
         os.chdir(self.cwd)
 
+    def commit(self, message: str) -> None:
+        os.chdir(self.directory)
+        os.system(f"git commit -m \"{message}\"")
+        os.chdir(self.cwd)
+
+    def push(self) -> None:
+        os.chdir(self.directory)
+        os.system("git push")
+        os.chdir(self.cwd)
+
+    def add_GitLab_CI(self) -> None:
+        shutil.copyfile(
+            os.path.join(self.cwd, "src/sample_gitlab_CI.yml"),
+            os.path.join(self.directory, ".gitlab-ci.yml"),
+        )
+        os.system(f"git add -m .gitlab-ci.yml")
+
+    def add_Readme(self) -> None:
+        shutil.copyfile(
+            os.path.join(self.cwd, "src/sample_README.md"),
+            os.path.join(self.directory, "README.md"),
+        )
+        os.system(f"git add -m README.md")
+
     def __call__(self) -> None:
         self.download_Overleaf_project()
         self.get_title()
@@ -119,6 +144,16 @@ class SyncedRepo(ABC):
         self.create_empty_GitLab_repo()
         self.add_GitLab_remote()
         self.push_to_GitLab()
+
+        self.add_GitLab_CI()
+        self.commit("Add GitLab CI")
+        self.push()
+
+        self.add_Readme()
+        self.commit("Add Readme.md")
+        self.push()
+
+        # add setup.sh
 
 
 if __name__ == "__main__":
