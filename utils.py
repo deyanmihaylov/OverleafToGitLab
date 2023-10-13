@@ -72,6 +72,15 @@ def hyphenate_string(string: str) -> str:
     return string
 
 def snakestyle_string(string: str) -> str:
+    """
+    Replace intervals in a string with underscores
+
+    INPUTS
+    string (str): the string whose intervals will be replaced
+
+    RETURNS
+    str: the original string with intervals replaced with underscores
+    """
     string = re.sub(" +", ' ', string)
     string = string.replace(' ', '_')
     return string
