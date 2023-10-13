@@ -4,6 +4,7 @@ import gitlab
 import os
 import argparse
 import getpass
+import contextlib
 
 from utils import *
 
@@ -85,16 +86,16 @@ class SyncedRepo(ABC):
         })
 
     def add_GitLab_remote(self) -> None:
-        with os.chdir(self.directory):
+        with contextlib.chdir(self.directory):
             os.system(f"git remote add gitlab git@gitlab.com:deyanmihaylov/{self.hash}.git")
             os.system(f"git remote set-url origin --add --push https://git.overleaf.com/{self.hash}")
             os.system(f"git remote set-url origin --add --push git@gitlab.com:deyanmihaylov/{self.hash}.git")
         
     def push_to_GitLab(self) -> None:
-        with os.chdir(self.directory):
+        with contextlib.chdir(self.directory):
             os.system("git push gitlab")
 
-    def __call__(self):
+    def __call__(self) -> None:
         self.download_Overleaf_project()
         self.get_title()
         self.rename_directory()
