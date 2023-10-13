@@ -4,11 +4,10 @@ import gitlab
 import os
 import argparse
 import getpass
-import contextlib
-
-from utils import *
 
 from typing import Tuple
+
+from utils import *
 
 
 class SyncedRepo(ABC):
@@ -28,12 +27,17 @@ class SyncedRepo(ABC):
         self.download_directory = None
         self.new_directory = None
         self.directory = None
+        self.cwd = os.getcwd()
         self.download_success = False
         self.title = None
         self.hyphenated_title = None
         self.snakestyle_title = None
 
-        self.overleaf_web_url, self.overleaf_git_url, self.hash = self._parse_input()
+        (
+            self.overleaf_web_url,
+            self.overleaf_git_url,
+            self.hash,
+        ) = self._parse_input()
 
         if self.input_dir is None:
             raise Exception("The target directory cannot be None")
@@ -101,10 +105,12 @@ class SyncedRepo(ABC):
         os.system(
             f"git remote set-url origin --add --push {self.gitlab_ssh_url}"
         )
+        os.chdir(self.cwd)
         
     def push_to_GitLab(self) -> None:
         os.chdir(self.directory)
         os.system("git push gitlab")
+        os.chdir(self.cwd)
 
     def __call__(self) -> None:
         self.download_Overleaf_project()
@@ -125,28 +131,4 @@ if __name__ == "__main__":
         url_or_hash = args.url_or_hash,
         target_dir = args.dir,
     )
-
     sync()
-    
-    # with open("./secret.txt", "r") as f: gitlab_token = f.read().strip()
-    
-    # gl = gitlab.Gitlab("https://gitlab.com/", private_token=gitlab_token, api_version=4)
-    # gl.auth()
-
-    # title = get_title_from_project(target_directory)
-    # title_hyphenated = hyphenate_string(title)
-
-    # response = gl.projects.create({
-    #     "name": title,
-    #     "path": hash_slug,
-    # })
-
-    # new_directory = os.path.join("/Users/deyanmihaylov/Documents/Work/Papers", title)
-
-    # rename_folder(target_directory, new_directory)
-
-    # os.chdir(new_directory)
-
-    # add_GitLab_remote()
-    # push_to_GitLab()
-
