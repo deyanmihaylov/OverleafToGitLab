@@ -20,8 +20,10 @@ class SyncedRepo(ABC):
         self.input_url_or_hash = url_or_hash
         self.input_dir = target_dir
 
-        self.www_url = None
-        self.git_url = None
+        self.overleaf_web_url = None
+        self.overleaf_git_url = None
+        self.gitlab_web_url = None
+        self.gitlab_ssh_url = None
         self.hash = None
         self.download_directory = None
         self.new_directory = None
@@ -31,7 +33,7 @@ class SyncedRepo(ABC):
         self.hyphenated_title = None
         self.snakestyle_title = None
 
-        self.www_url, self.git_url, self.hash = self._parse_input()
+        self.overleaf_web_url, self.overleaf_git_url, self.hash = self._parse_input()
 
         if self.input_dir is None:
             raise Exception("The target directory cannot be None")
@@ -46,7 +48,7 @@ class SyncedRepo(ABC):
 
     def download_Overleaf_project(self) -> None:
         try:
-            Repo.clone_from(self.git_url, self.target_directory)
+            Repo.clone_from(self.overleaf_git_url, self.target_directory)
             self.download_success = True
         except Exception as e:
             print(f"An exception occurred: {e}")
@@ -80,20 +82,29 @@ class SyncedRepo(ABC):
             api_version=4,
         )
         gl.auth()
-        response = gl.projects.create({
+        self.response = gl.projects.create({
             "name": self.title,
             "path": self.hash,
         })
 
+        self.gitlab_web_url = self.response.web_url
+        self.gitlab_ssh_url = self.response.ssh_url_to_repo
+
     def add_GitLab_remote(self) -> None:
-        with contextlib.chdir(self.directory):
-            os.system(f"git remote add gitlab git@gitlab.com:deyanmihaylov/{self.hash}.git")
-            os.system(f"git remote set-url origin --add --push https://git.overleaf.com/{self.hash}")
-            os.system(f"git remote set-url origin --add --push git@gitlab.com:deyanmihaylov/{self.hash}.git")
+        os.chdir(self.directory)
+        os.system(
+            f"git remote add gitlab {self.gitlab_ssh_url}"
+        )
+        os.system(
+            f"git remote set-url origin --add --push {self.overleaf_git_url}"
+        )
+        os.system(
+            f"git remote set-url origin --add --push {self.gitlab_ssh_url}"
+        )
         
     def push_to_GitLab(self) -> None:
-        with contextlib.chdir(self.directory):
-            os.system("git push gitlab")
+        os.chdir(self.directory)
+        os.system("git push gitlab")
 
     def __call__(self) -> None:
         self.download_Overleaf_project()
