@@ -63,11 +63,15 @@ class SyncedRepo(ABC):
         self.directory = self.new_directory
 
     def create_empty_GitLab_repo(self):
-        try:
-            with open("./secret.txt", "r") as f:
-                gitlab_token = f.read().strip()
-        except BaseException as e:
-            gitlab_token = getpass.getpass("Enter GitLab access token:\n")
+        if "GITLAB_OVERLEAF" in os.environ:
+            gitlab_token = os.getenv("GITLAB_OVERLEAF")
+        else:
+            try:
+                with open("./secret.txt", "r") as f:
+                    gitlab_token = f.read().strip()
+            except BaseException as e:
+                gitlab_token = getpass.getpass("Enter GitLab access token:\n")
+                os.environ["GITLAB_OVERLEAF"] = gitlab_token
 
         gl = gitlab.Gitlab(
             "https://gitlab.com/",
@@ -79,16 +83,15 @@ class SyncedRepo(ABC):
             "name": self.title,
             "path": self.hash,
         })
-        print(response)
 
     def add_GitLab_remote(self) -> None:
-        with os.chdir(new_directory):
+        with os.chdir(self.directory):
             os.system(f"git remote add gitlab git@gitlab.com:deyanmihaylov/{self.hash}.git")
             os.system(f"git remote set-url origin --add --push https://git.overleaf.com/{self.hash}")
             os.system(f"git remote set-url origin --add --push git@gitlab.com:deyanmihaylov/{self.hash}.git")
         
     def push_to_GitLab(self) -> None:
-        with os.chdir(new_directory):
+        with os.chdir(self.directory):
             os.system("git push gitlab")
 
     def __call__(self):
