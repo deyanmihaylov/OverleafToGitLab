@@ -1,6 +1,7 @@
 import os
 import glob
 import re
+import sys
 
 from typing import Tuple
 
@@ -40,7 +41,9 @@ def get_urls_and_hash(url_or_hash: str) -> Tuple[str, str, str]:
 def get_title_from_LaTeX_project(directory: str) -> str:
     main_file = "main.tex"
     if os.path.isfile(os.path.join(directory, main_file)):
-        title_line = extract_title_from_TeX_file(os.path.join(directory, main_file))
+        title_line = extract_title_from_TeX_file(
+            os.path.join(directory, main_file)
+        )
     else:
         for filepath in glob.glob(os.path.join(directory, "*.tex")):
             title_line = extract_title_from_TeX_file(filepath)
@@ -78,6 +81,7 @@ def rename_folder(path: str, new_name: str) -> None:
         os.rename(path, new_name)
     except Exception as e:
         print(f"An exception occurred: {e}")
+        sys.exit()
 
 
 if __name__ == "__main__":
