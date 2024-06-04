@@ -53,12 +53,74 @@ def get_title_from_LaTeX_project(directory: str) -> str:
     return title
 
 def extract_title_from_TeX_file(filepath: str) -> str:
-    with open(filepath, "r") as file:
+    file_contents = ''
+    with open(filepath, 'r') as file:
         for line in file:
-            if re.search(r"\\title", line):
-                title_line = line
-                break
-    return title_line.strip()
+            comment_char_idxs = character_idxs(line, '%')
+            entire_line_is_commented = False
+            comment_start = -1
+
+            for idx in comment_char_idxs:
+                if idx == 0:
+                    # Entire line is commented out
+                    entire_line_is_commented = True
+                    break
+                elif line[idx-1] == '\\':
+                    # This comment characted is escaped
+                    continue
+                else:
+                    # This is where the comment on this line begins
+                    comment_start = idx
+                    break
+
+            if entire_line_is_commented: continue
+            file_contents += line[0:comment_start].strip()
+    
+    title_location = file_contents.find("\\title")
+    if title_location == -1:
+        return ''
+    else:
+        return extract_first_latex_command(file_contents[title_location:])
+
+def extract_first_latex_command(string: str):
+    count_opening_curly = 0
+    count_closing_curly = 0
+
+    i = 0
+
+    while True:
+        if string[i] == '{':
+            if i != 0 and string[i-1] == '\\':
+                # This opening curly bracket is escaped
+                pass
+            else:
+                # We have an opening curly bracket
+                count_opening_curly += 1
+        else:
+            pass
+
+        if string[i] == '}':
+            if i == 0:
+                # String starts with closing curly bracket
+                raise ValueError
+            elif string[i-1] == '\\':
+                # This closing curly bracket is escaped
+                pass
+            else:
+                # We have a closing curly bracket
+                count_closing_curly += 1
+        else:
+            pass
+        
+        i += 1
+
+        if count_opening_curly > 0 and count_opening_curly == count_closing_curly:
+            break
+
+    return string[:i]
+
+def character_idxs(string: str, match: str):
+    return [idx for idx, c in enumerate(string) if c == match]
 
 def get_title_from_LaTeX_line(line: str) -> str:
     line = line.replace(r"\\title", '')
