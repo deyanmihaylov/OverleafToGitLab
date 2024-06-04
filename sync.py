@@ -137,10 +137,9 @@ class SyncedRepo(ABC):
         os.chdir(self.cwd)
 
     def add_Readme(self) -> None:
-        shutil.copyfile(
-            os.path.join(self.cwd, "src/sample_README.md"),
-            os.path.join(self.directory, "README.md"),
-        )
+        with open(os.path.join(self.directory, "README.md"), 'w') as readme_file:
+            readme_file.write(f"[Latest manuscript](https://deyanmihaylov.gitlab.io/{self.hash}/main.pdf)")
+
         os.chdir(self.directory)
         os.system(f"git add README.md")
         os.chdir(self.cwd)
