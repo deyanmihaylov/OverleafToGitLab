@@ -63,6 +63,7 @@ class SyncedRepo(ABC):
         self.title = get_title_from_LaTeX_project(self.target_directory)
         self.title = LatexNodes2Text().latex_to_text(self.title)
         self.title = self.title.replace(':', '')
+        self.title = self.title.replace(',', '')
         
         self.hyphenated_title = hyphenate_string(self.title)
         self.snakestyle_title = snakestyle_string(self.title)
