@@ -5,6 +5,7 @@ import os
 import argparse
 import getpass
 import shutil
+from pylatexenc.latex2text import LatexNodes2Text
 
 from typing import Tuple
 
@@ -60,6 +61,9 @@ class SyncedRepo(ABC):
 
     def get_title(self) -> None:
         self.title = get_title_from_LaTeX_project(self.target_directory)
+        self.title = LatexNodes2Text().latex_to_text(self.title)
+        self.title = self.title.replace(':', '')
+        
         self.hyphenated_title = hyphenate_string(self.title)
         self.snakestyle_title = snakestyle_string(self.title)
 
@@ -128,21 +132,37 @@ class SyncedRepo(ABC):
             os.path.join(self.cwd, "src/sample_gitlab_CI.yml"),
             os.path.join(self.directory, ".gitlab-ci.yml"),
         )
-        os.system(f"git add -m .gitlab-ci.yml")
+        os.chdir(self.directory)
+        os.system(f"git add .gitlab-ci.yml")
+        os.chdir(self.cwd)
 
     def add_Readme(self) -> None:
         shutil.copyfile(
             os.path.join(self.cwd, "src/sample_README.md"),
             os.path.join(self.directory, "README.md"),
         )
-        os.system(f"git add -m README.md")
+        os.chdir(self.directory)
+        os.system(f"git add README.md")
+        os.chdir(self.cwd)
 
     def __call__(self) -> None:
+        print("Cloning the repository from Overleaf")
         self.download_Overleaf_project()
+
+        print("Extracting the project title:")
         self.get_title()
+        print(self.title)
+
+        print("Renaming the project directory")
         self.rename_directory()
+
+        print("Creating a new GitLab repository")
         self.create_empty_GitLab_repo()
+
+        print("Linking the local repository to the new GitLab repository")
         self.add_GitLab_remote()
+
+        print("Pushing to the new GitLab repository")
         self.push_to_GitLab()
 
         self.add_GitLab_CI()
