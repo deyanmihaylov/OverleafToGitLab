@@ -1,19 +1,39 @@
-compile_pdf:
+image: texlive/texlive:latest
+
+stages:
+  - build
+  - deploy
+
+variables:
+  LATEXMK_OPTS: "-pdf -interaction=nonstopmode -halt-on-error -file-line-error"
+
+build_pdf:
   stage: build
-  image: timnn/texlive
-  script: pdflatex main.tex
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends latexmk
+    # Adjust if your Overleaf root TeX file isn't main.tex
+    - latexmk $LATEXMK_OPTS main.tex
+    - mkdir -p public
+    - cp -f main.pdf public/
   artifacts:
-    paths: 
-      - main.pdf
+    paths:
+      - public/main.pdf
+    expire_in: 1 week
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      when: on_success
 
 pages:
   stage: deploy
+  dependencies:
+    - build_pdf
   script:
-    - mkdir public
-    - cp main.pdf public
+    - test -f public/main.pdf
   artifacts:
-    paths: 
+    paths:
       - public
-  only: 
-    - master
-  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never
+    
