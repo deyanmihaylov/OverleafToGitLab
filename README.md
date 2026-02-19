@@ -2,7 +2,7 @@
 
 A small automation tool that converts an Overleaf project into a fully-configured GitLab repository with CI/CD and GitLab Pages support.
 
-The goal is to make academic writing workflows reproducible and version-controlled outside Overleaf while preserving a simple “clone → build → bublish PDF” pipeline.
+The goal is to make academic writing workflows reproducible and version-controlled outside Overleaf while preserving a simple “clone → build → publish PDF” pipeline.
 
 ## Overview
 
