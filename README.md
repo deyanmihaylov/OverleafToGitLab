@@ -4,8 +4,6 @@ A small automation tool that converts an Overleaf project into a fully-configure
 
 The goal is to make academic writing workflows reproducible and version-controlled outside Overleaf while preserving a simple “clone → build → bublish PDF” pipeline.
 
----
-
 ## Overview
 
 `OverleafToGitLab` automates the process of:
@@ -19,8 +17,6 @@ The goal is to make academic writing workflows reproducible and version-controll
 
 After running the script, your Overleaf project becomes a normal GitLab project with CI builds and a Pages URL pointing to the compiled PDF.
 
----
-
 ## Features
 
 - Automatic Overleaf → GitLab repository migration
@@ -29,8 +25,6 @@ After running the script, your Overleaf project becomes a normal GitLab project 
 - LaTeX CI pipeline (using ``latexmk``)
 - GitLab Pages deployment of compiled PDFs
 - Title extraction from LaTeX source to generate clean repo names
-
----
 
 ## Requirements
 
@@ -50,9 +44,6 @@ Install:
 pip install -r requirements.txt
 ```
 
-
----
-
 ## Usage
 
 Basic example:
@@ -69,9 +60,6 @@ The script will:
 - push sources,
 - install a CI pipeline.
 
-
----
-
 ## Configuration
 
 Authentication is done via a GitLab Personal Access Token.
@@ -84,19 +72,14 @@ export GITLAB_OVERLEAF=<your_token>
 
 Alternatively, the script can prompt for a token interactively.
 
-
----
-
 ## Output
 
 After a successful run:
 
-- A born new GitLab repository is created.
-- The LaTeX project is pushed to GitLab.
- - CI builds produce a PDF automatically.
- - The PDF is available via GitLab Pages.
-
----
+- A new GitLab repository is created with the name of the project.
+- The LaTeX project is pushed to this GitLab repository.
+- CI builds produce a PDF automatically.
+- The PDF is available via GitLab Pages.
 
 ## License
 
