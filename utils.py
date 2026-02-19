@@ -1,10 +1,15 @@
 import os
 import glob
 import re
-import sys
+# import sys
 import subprocess
+from pathlib import Path
+import logging
 
 from typing import Tuple, Sequence
+
+
+logger = logging.getLogger(__name__)
 
 
 def run(cmd: Sequence[str], cwd: str | None = None) -> None:
@@ -160,12 +165,6 @@ def snakestyle_string(string: str) -> str:
     string = re.sub(" +", ' ', string)
     string = string.replace(' ', '_')
     return string
-
-from pathlib import Path
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 def rename_folder(
     path: str,
