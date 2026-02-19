@@ -6,9 +6,10 @@ from pathlib import Path
 import argparse
 import getpass
 import shutil
+import logging
 from pylatexenc.latex2text import LatexNodes2Text
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 from utils import (
     run, get_urls_and_hash, get_title_from_LaTeX_project,
@@ -17,42 +18,63 @@ from utils import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 class SyncedRepo(ABC):
     def __init__(
         self,
         url_or_hash: str,
-        target_dir: str = None,
+        target_dir: str | Path,
     ) -> None:
+        """
+        Create a sync session for one Overleaf project.
+
+        Args:
+            url_or_hash: Overleaf project URL (web or git) or project hash.
+            target_dir: Existing directory where the project will be cloned.
+
+        Raises:
+            ValueError: If `target_dir` is None.
+            NotADirectoryError: If `target_dir` is not an existing directory.
+        """
         self.input_url_or_hash = url_or_hash
 
         if target_dir is None:
-            raise Exception("The target directory cannot be None")
-        elif not Path(target_dir).is_dir():
-            raise Exception(f"{target_dir} is not a directory")
-        else:
-            self.input_dir = Path(target_dir)
-            self.target_directory = self.input_dir / self.hash
-            self.directory = self.target_directory
+            raise ValueError("The target directory cannot be None")
+        
+        self.input_dir = Path(target_dir)
+        if not self.input_dir.is_dir():
+            raise NotADirectoryError(f"{self.input_dir} is not a directory")
 
-        self.overleaf_web_url = None
-        self.overleaf_git_url = None
-        self.gitlab_web_url = None
-        self.gitlab_ssh_url = None
-        self.hash = None
-        self.download_directory = None
-        self.new_directory = None
-        self.directory = None
-        self.cwd = os.getcwd()
-        self.download_success = False
-        self.title = None
-        self.hyphenated_title = None
-        self.snakestyle_title = None
-
+        # Parse input early (hash is required to build paths)
+        self.overleaf_web_url: Optional[str]
+        self.overleaf_git_url: Optional[str]
+        self.hash: str
         (
             self.overleaf_web_url,
             self.overleaf_git_url,
             self.hash,
         ) = self._parse_input()
+
+        # Paths (Path objects)
+        self.target_directory: Path = self.input_dir / self.hash
+        self.directory: Path = self.target_directory
+        self.new_directory: Optional[Path] = None
+
+        # GitLab
+        self.gitlab_web_url: Optional[str] = None
+        self.gitlab_ssh_url: Optional[str] = None
+        self.response = None
+
+        # Metadata
+        self.download_success: bool = False
+        self.title: Optional[str] = None
+        self.hyphenated_title: Optional[str] = None
+        self.snakestyle_title: Optional[str] = None
+
+        # Repo root (so running from another cwd works)
+        self.repo_root: Path = Path(__file__).resolve().parent
 
     def _parse_input(self) -> Tuple[str, str, str]:
         return get_urls_and_hash(self.input_url_or_hash)
@@ -62,22 +84,28 @@ class SyncedRepo(ABC):
             Repo.clone_from(self.overleaf_git_url, self.target_directory)
             self.download_success = True
         except Exception as e:
-            print(f"An exception occurred: {e}")
+            logger.exception("Failed to clone Overleaf project: %s", e)
+            raise
 
     def get_title(self) -> None:
-        self.title = get_title_from_LaTeX_project(self.target_directory)
+        self.title = get_title_from_LaTeX_project(str(self.target_directory))
         self.title = LatexNodes2Text().latex_to_text(self.title)
-        self.title = self.title.replace(':', '')
-        self.title = self.title.replace(',', '')
-        
+        self.title = self.title.replace(":", "").replace(",", "")
+
         self.hyphenated_title = hyphenate_string(self.title)
         self.snakestyle_title = snakestyle_string(self.title)
 
     def rename_directory(self) -> None:
-        self.new_directory = os.path.join(
-            self.input_dir, self.snakestyle_title,
+        if not self.snakestyle_title:
+            raise ValueError(
+                "snakestyle_title is not set; call get_title() first."
+            )
+
+        self.new_directory = self.input_dir / self.snakestyle_title
+        rename_folder(
+            str(self.directory), str(self.new_directory),
+            exist_ok=False,
         )
-        rename_folder(self.directory, self.new_directory)
         self.directory = self.new_directory
 
     def create_empty_GitLab_repo(self):
