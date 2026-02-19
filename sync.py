@@ -171,29 +171,37 @@ class SyncedRepo(ABC):
         run(["git", "add", "README.md"], cwd=self.directory)
 
     def __call__(self) -> None:
+        # Clone the repository from Overleaf to a local directory
         print("Cloning the repository from Overleaf")
         self.download_Overleaf_project()
 
+        # Get the project title from the .tex file
         print("Extracting the project title:")
         self.get_title()
         print(self.title)
 
+        # Rename the directory to the project title
         print("Renaming the project directory")
         self.rename_directory()
 
+        # Create a new repository on GitLab
         print("Creating a new GitLab repository")
         self.create_empty_GitLab_repo()
 
+        # Link the local (Overleaf) repository to the new GitLab repository
         print("Linking the local repository to the new GitLab repository")
         self.add_GitLab_remote()
 
+        # Push the project to the linked GitLab repository
         print("Pushing to the new GitLab repository")
         self.push_to_GitLab()
 
+        # Add a GitLab CI script for compiling the project
         self.add_GitLab_CI()
         self.commit("Add GitLab CI")
         self.push()
 
+        # Add README file to the project
         self.add_Readme()
         self.commit("Add Readme.md")
         self.push()
