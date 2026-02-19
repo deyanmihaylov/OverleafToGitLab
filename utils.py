@@ -161,12 +161,54 @@ def snakestyle_string(string: str) -> str:
     string = string.replace(' ', '_')
     return string
 
-def rename_folder(path: str, new_name: str) -> None:
-    try:
-        os.rename(path, new_name)
-    except Exception as e:
-        print(f"An exception occurred: {e}")
-        sys.exit()
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def rename_folder(
+    path: str,
+    new_name: str,
+    *,
+    exist_ok: bool = False,
+) -> None:
+    """
+    Rename a directory.
+
+    Args:
+        path: Existing directory path.
+        new_name: New directory path.
+        exist_ok: If True, do nothing when the destination already exists.
+            This makes the operation idempotent for repeated sync runs.
+
+    Returns:
+        None
+
+    Raises:
+        FileNotFoundError: If the source directory does not exist.
+        NotADirectoryError: If the source path is not a directory.
+        FileExistsError: If the target directory already exists and
+            `exist_ok` is False.
+        OSError: If the rename operation fails at the OS level.
+    """
+    src = Path(path)
+    dst = Path(new_name)
+
+    if not src.exists():
+        raise FileNotFoundError(f"Source directory does not exist: {src}")
+
+    if not src.is_dir():
+        raise NotADirectoryError(f"Source is not a directory: {src}")
+
+    if dst.exists():
+        if exist_ok:
+            logger.info("Directory already named '%s'; skipping rename.", dst.name)
+            return
+        raise FileExistsError(f"Target directory already exists: {dst}")
+
+    logger.info("Renaming directory: %s -> %s", src, dst)
+    src.rename(dst)
 
 
 if __name__ == "__main__":
