@@ -2,6 +2,7 @@ from abc import ABC
 from git import Repo
 import gitlab
 import os
+from pathlib import Path
 import argparse
 import getpass
 import shutil
@@ -9,7 +10,11 @@ from pylatexenc.latex2text import LatexNodes2Text
 
 from typing import Tuple
 
-from utils import run
+from utils import (
+    run, get_urls_and_hash, get_title_from_LaTeX_project,
+    hyphenate_string, snakestyle_string,
+    rename_folder,
+)
 
 
 class SyncedRepo(ABC):
@@ -19,7 +24,15 @@ class SyncedRepo(ABC):
         target_dir: str = None,
     ) -> None:
         self.input_url_or_hash = url_or_hash
-        self.input_dir = target_dir
+
+        if target_dir is None:
+            raise Exception("The target directory cannot be None")
+        elif not Path(target_dir).is_dir():
+            raise Exception(f"{target_dir} is not a directory")
+        else:
+            self.input_dir = Path(target_dir)
+            self.target_directory = self.input_dir / self.hash
+            self.directory = self.target_directory
 
         self.overleaf_web_url = None
         self.overleaf_git_url = None
@@ -40,14 +53,6 @@ class SyncedRepo(ABC):
             self.overleaf_git_url,
             self.hash,
         ) = self._parse_input()
-
-        if self.input_dir is None:
-            raise Exception("The target directory cannot be None")
-        elif not os.path.isdir(self.input_dir):
-            raise Exception(f"{self.input_dir} is not a directory")
-        else:
-            self.target_directory = os.path.join(self.input_dir, self.hash)
-            self.directory = self.target_directory
 
     def _parse_input(self) -> Tuple[str, str, str]:
         return get_urls_and_hash(self.input_url_or_hash)
