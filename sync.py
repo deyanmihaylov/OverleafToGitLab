@@ -9,7 +9,7 @@ from pylatexenc.latex2text import LatexNodes2Text
 
 from typing import Tuple
 
-from utils import *
+from utils import run
 
 
 class SyncedRepo(ABC):
@@ -101,49 +101,41 @@ class SyncedRepo(ABC):
         self.gitlab_ssh_url = self.response.ssh_url_to_repo
 
     def add_GitLab_remote(self) -> None:
-        os.chdir(self.directory)
-        os.system(
-            f"git remote add gitlab {self.gitlab_ssh_url}"
+        # Add gitlab remote (if it already exists, you may want to handle that later)
+        run(["git", "remote", "add", "gitlab", self.gitlab_ssh_url], cwd=self.directory)
+
+        # Configure origin push URLs to include both Overleaf and GitLab
+        run(
+            ["git", "remote", "set-url", "origin", "--add", "--push", self.overleaf_git_url],
+            cwd=self.directory,
         )
-        os.system(
-            f"git remote set-url origin --add --push {self.overleaf_git_url}"
+        run(
+            ["git", "remote", "set-url", "origin", "--add", "--push", self.gitlab_ssh_url],
+            cwd=self.directory,
         )
-        os.system(
-            f"git remote set-url origin --add --push {self.gitlab_ssh_url}"
-        )
-        os.chdir(self.cwd)
         
     def push_to_GitLab(self) -> None:
-        os.chdir(self.directory)
-        os.system("git push gitlab")
-        os.chdir(self.cwd)
+        run(["git", "push", "gitlab"], cwd=self.directory)
 
     def commit(self, message: str) -> None:
-        os.chdir(self.directory)
-        os.system(f"git commit -m \"{message}\"")
-        os.chdir(self.cwd)
+        run(["git", "commit", "-m", message], cwd=self.directory)
 
     def push(self) -> None:
-        os.chdir(self.directory)
-        os.system("git push")
-        os.chdir(self.cwd)
+        run(["git", "push"], cwd=self.directory)
 
     def add_GitLab_CI(self) -> None:
         shutil.copyfile(
             os.path.join(self.cwd, "src/sample_gitlab_CI.yml"),
             os.path.join(self.directory, ".gitlab-ci.yml"),
         )
-        os.chdir(self.directory)
-        os.system(f"git add .gitlab-ci.yml")
-        os.chdir(self.cwd)
+        run(["git", "add", ".gitlab-ci.yml"], cwd=self.directory)
 
     def add_Readme(self) -> None:
-        with open(os.path.join(self.directory, "README.md"), 'w') as readme_file:
-            readme_file.write(f"[Latest manuscript](https://deyanmihaylov.gitlab.io/{self.hash}/main.pdf)")
+        readme_path = os.path.join(self.directory, "README.md")
+        with open(readme_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(f"[Latest manuscript](https://deyanmihaylov.gitlab.io/{self.hash}/main.pdf)\n")
 
-        os.chdir(self.directory)
-        os.system(f"git add README.md")
-        os.chdir(self.cwd)
+        run(["git", "add", "README.md"], cwd=self.directory)
 
     def __call__(self) -> None:
         print("Cloning the repository from Overleaf")
