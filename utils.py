@@ -12,6 +12,10 @@ from typing import Tuple, Sequence
 logger = logging.getLogger(__name__)
 
 
+OVERLEAF_WEB_PREFIX = "https://www.overleaf.com/project/"
+OVERLEAF_GIT_PREFIX = "https://git.overleaf.com/"
+
+
 def run(cmd: Sequence[str], cwd: str | None = None) -> None:
     """
     Execute a command safely and raise if it fails.
@@ -27,33 +31,49 @@ def run(cmd: Sequence[str], cwd: str | None = None) -> None:
 
 def get_urls_and_hash(url_or_hash: str) -> Tuple[str, str, str]:
     """
-    url_or_hash can be of the form of any of the below 3:
-    https://www.overleaf.com/project/5cfacaa5a39cd676c26e6332
-    https://git.overleaf.com/5cfacaa5a39cd676c26e6332
-    5cfacaa5a39cd676c26e6332
+    Parse an Overleaf identifier and return canonical URLs.
+
+    The input may be:
+        - Overleaf web URL:
+            https://www.overleaf.com/project/<hash>
+        - Overleaf git URL:
+            https://git.overleaf.com/<hash>
+        - Raw project hash:
+            <hash>
+
+    Args:
+        url_or_hash: Overleaf project web URL, git URL, or hash.
+
+    Returns:
+        Tuple[str, str, str]:
+            (web_url, git_url, project_hash)
+
+    Raises:
+        ValueError: If the input cannot be interpreted as a valid
+            Overleaf project identifier.
     """
-    if url_or_hash[:33] == "https://www.overleaf.com/project/":
-        www_url = url_or_hash
-        git_url = url_or_hash.replace(
-            "https://www.overleaf.com/project/", "https://git.overleaf.com/",
-        )
-        hash_slug = url_or_hash.replace(
-            "https://www.overleaf.com/project/", '',
-        )
-    elif url_or_hash[:25] == "https://git.overleaf.com/":
-        www_url = url_or_hash.replace(
-            "https://git.overleaf.com/", "https://www.overleaf.com/project/",
-        )
-        git_url = url_or_hash
-        hash_slug = url_or_hash.replace(
-            "https://git.overleaf.com/", '',
-        )
-    elif url_or_hash.isalnum():
-        www_url = f"https://www.overleaf.com/project/{url_or_hash}"
-        git_url = f"https://git.overleaf.com/{url_or_hash}"
-        hash_slug = url_or_hash
+    if not url_or_hash:
+        raise ValueError("Empty Overleaf identifier")
+    
+    value = url_or_hash.strip().rstrip("/")
+    
+    if value.startswith(OVERLEAF_WEB_PREFIX):
+        # Case 1: Overleaf web URL
+        hash_slug = value.removeprefix(OVERLEAF_WEB_PREFIX)
+    elif value.startswith(OVERLEAF_GIT_PREFIX):
+        # Case 2: Overleaf git URL
+        hash_slug = value.removeprefix(OVERLEAF_GIT_PREFIX)
     else:
-        raise Exception("URL not recognised")
+        # Case 3: Raw hash
+        hash_slug = value
+
+    # Basic validation of project hash
+    # Overleaf hashes are alphanumeric (usually hex-like)
+    if not hash_slug or not hash_slug.isalnum():
+        raise ValueError(f"Unrecognised Overleaf identifier: {url_or_hash}")
+    
+    www_url = f"{OVERLEAF_WEB_PREFIX}{hash_slug}"
+    git_url = f"{OVERLEAF_GIT_PREFIX}{hash_slug}"
     
     return www_url, git_url, hash_slug
 
