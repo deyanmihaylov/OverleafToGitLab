@@ -73,7 +73,7 @@ class SyncedRepo(ABC):
         self.hyphenated_title: Optional[str] = None
         self.snakestyle_title: Optional[str] = None
 
-        # Repo root (so running from another cwd works)
+        # Repo root (so running from another directory works)
         self.repo_root: Path = Path(__file__).resolve().parent
 
     def _parse_input(self) -> Tuple[str, str, str]:
