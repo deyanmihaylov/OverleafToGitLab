@@ -2,9 +2,23 @@ import os
 import glob
 import re
 import sys
+import subprocess
 
-from typing import Tuple
+from typing import Tuple, Sequence
 
+
+def run(cmd: Sequence[str], cwd: str | None = None) -> None:
+    """
+    Execute a command safely and raise if it fails.
+
+    Parameters
+        cmd : list[str]
+            Command and arguments, e.g. ["git", "push", "origin", "main"].
+        cwd : str | None
+            Working directory.
+    """
+    print(">>", " ".join(cmd))
+    subprocess.run(cmd, cwd=cwd, check=True)
 
 def get_urls_and_hash(url_or_hash: str) -> Tuple[str, str, str]:
     """
