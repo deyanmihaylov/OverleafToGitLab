@@ -13,7 +13,7 @@ from typing import Tuple, Optional
 
 from utils import (
     run, get_urls_and_hash, get_title_from_LaTeX_project,
-    hyphenate_string, snakestyle_string,
+    slugify,
     rename_folder,
 )
 
@@ -87,13 +87,33 @@ class SyncedRepo(ABC):
             logger.exception("Failed to clone Overleaf project: %s", e)
             raise
 
-    def get_title(self) -> None:
-        self.title = get_title_from_LaTeX_project(str(self.target_directory))
-        self.title = LatexNodes2Text().latex_to_text(self.title)
-        self.title = self.title.replace(":", "").replace(",", "")
+    # def get_title(self) -> None:
+    #     self.title = get_title_from_LaTeX_project(str(self.target_directory))
+    #     self.title = LatexNodes2Text().latex_to_text(self.title)
+    #     self.title = self.title.replace(":", "").replace(",", "")
 
-        self.hyphenated_title = hyphenate_string(self.title)
-        self.snakestyle_title = snakestyle_string(self.title)
+    #     self.hyphenated_title = hyphenate_string(self.title)
+    #     self.snakestyle_title = snakestyle_string(self.title)
+
+    def _get_title(self) -> None:
+        """
+        Extract title from LaTeX sources and derive slug variants.
+        """
+        raw_title = get_title_from_LaTeX_project(self.target_directory)
+
+        if raw_title:
+            title_text = LatexNodes2Text().latex_to_text(raw_title).strip()
+        else:
+            # Fallback: use the hash so the pipeline can still proceed
+            title_text = self.hash
+
+        self.title = title_text
+        self.hyphenated_title = slugify(
+            title_text, style="kebab", lowercase=False,
+        )
+        self.snakestyle_title = slugify(
+            title_text, style="snake", lowercase=False,
+        )
 
     def rename_directory(self) -> None:
         if not self.snakestyle_title:
@@ -177,7 +197,7 @@ class SyncedRepo(ABC):
 
         # Get the project title from the .tex file
         print("Extracting the project title:")
-        self.get_title()
+        self._get_title()
         print(self.title)
 
         # Rename the directory to the project title
