@@ -82,12 +82,28 @@ class SyncedRepo(ABC):
         return get_urls_and_hash(self.input_url_or_hash)
 
     def download_Overleaf_project(self) -> None:
-        try:
-            Repo.clone_from(self.overleaf_git_url, self.target_directory)
-            self.download_success = True
-        except Exception as e:
-            logger.exception("Failed to clone Overleaf project: %s", e)
-            raise
+        """
+        Clone the Overleaf repository into the target directory.
+
+        This method performs a shallow clone of the Overleaf git repository
+        specified by `self.overleaf_git_url` into `self.target_directory`.
+
+        Side Effects:
+            - Creates a new local git repository on disk.
+            - Sets `self.download_success = True` on success.
+
+        Raises:
+            ValueError: If the Overleaf git URL is not set.
+            GitCommandError: If cloning fails (network issues, auth failure, etc.).
+            OSError: If the target directory cannot be written.
+        """
+        if not self.overleaf_git_url:
+            raise ValueError("overleaf_git_url is not set")
+
+        logger.info("Cloning Overleaf repo into %s", self.target_directory)
+
+        Repo.clone_from(self.overleaf_git_url, self.target_directory)
+        self.download_success = True
 
     # def get_title(self) -> None:
     #     self.title = get_title_from_LaTeX_project(str(self.target_directory))
