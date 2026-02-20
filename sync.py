@@ -1,4 +1,6 @@
 from abc import ABC
+
+import subprocess
 from git import Repo
 import gitlab
 import os
@@ -185,6 +187,16 @@ class SyncedRepo(ABC):
 
     def push(self) -> None:
         run(["git", "push"], cwd=self.directory)
+
+    def _commit_and_push(self, message: str) -> None:
+        """Commit staged changes (if any) and push."""
+        try:
+            self.commit(message)
+        except subprocess.CalledProcessError:
+            # Most common cause: "nothing to commit"
+            logger.info("Commit skipped (nothing to commit): %s", message)
+            return
+        self.push()
 
     def add_GitLab_CI(self) -> None:
         shutil.copyfile(
