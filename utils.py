@@ -1,12 +1,12 @@
-import os
-import glob
+# import os
+# import glob
 import re
 # import sys
 import subprocess
 from pathlib import Path
 import logging
 
-from typing import Tuple, Sequence, Union, List
+from typing import Tuple, Sequence, Union, List, Literal
 
 
 PathLike = Union[str, Path]
@@ -135,36 +135,6 @@ def get_title_from_LaTeX_project(
 
     return ""
 
-# def extract_title_from_TeX_file(filepath: str) -> str:
-#     file_contents = ''
-#     with open(filepath, 'r') as file:
-#         for line in file:
-#             comment_char_idxs = character_idxs(line, '%')
-#             entire_line_is_commented = False
-#             comment_start = -1
-
-#             for idx in comment_char_idxs:
-#                 if idx == 0:
-#                     # Entire line is commented out
-#                     entire_line_is_commented = True
-#                     break
-#                 elif line[idx-1] == '\\':
-#                     # This comment characted is escaped
-#                     continue
-#                 else:
-#                     # This is where the comment on this line begins
-#                     comment_start = idx
-#                     break
-
-#             if entire_line_is_commented: continue
-#             file_contents += line[0:comment_start].strip()
-    
-#     title_location = file_contents.find("\\title")
-#     if title_location == -1:
-#         return ''
-#     else:
-#         return extract_first_latex_command(file_contents[title_location:])
-
 def extract_title_from_TeX_file(filepath: PathLike) -> str:
     """
     Extract the first `\title{...}` command from a TeX file, ignoring comments.
@@ -210,43 +180,6 @@ def extract_title_from_TeX_file(filepath: PathLike) -> str:
         return ""
 
     return extract_first_latex_command(buf[loc:])
-
-# def extract_first_latex_command(string: str):
-#     count_opening_curly = 0
-#     count_closing_curly = 0
-
-#     i = 0
-
-#     while True:
-#         if string[i] == '{':
-#             if i != 0 and string[i-1] == '\\':
-#                 # This opening curly bracket is escaped
-#                 pass
-#             else:
-#                 # We have an opening curly bracket
-#                 count_opening_curly += 1
-#         else:
-#             pass
-
-#         if string[i] == '}':
-#             if i == 0:
-#                 # String starts with closing curly bracket
-#                 raise ValueError
-#             elif string[i-1] == '\\':
-#                 # This closing curly bracket is escaped
-#                 pass
-#             else:
-#                 # We have a closing curly bracket
-#                 count_closing_curly += 1
-#         else:
-#             pass
-        
-#         i += 1
-
-#         if count_opening_curly > 0 and count_opening_curly == count_closing_curly:
-#             break
-
-#     return string[:i]
 
 def extract_first_latex_command(text: str) -> str:
     """
@@ -350,6 +283,7 @@ def get_title_from_LaTeX_command(command: str) -> str:
 
     return s[lb + 1 : rb]
 
+
 def strip_latex_comment(line: str) -> str:
     """
     Strip the LaTeX comment portion from a single line.
@@ -381,47 +315,108 @@ def strip_latex_comment(line: str) -> str:
 
     return line
 
-def hyphenate_string(string: str) -> str:
-    """
-    Convert a string into a hyphen-separated form.
 
-    This function normalizes whitespace and replaces runs of whitespace
-    characters with a single hyphen (`-`). Leading and trailing whitespace
-    is removed before conversion.
+def slugify(
+    text: str,
+    *,
+    style: Literal["snake", "kebab"] = "snake",
+    lowercase: bool = False,
+    allow_unicode: bool = True,
+    collapse_runs: bool = True,
+) -> str:
+    """
+    Convert a string into a filesystem-friendly "slug".
+
+    The slug is produced by:
+      1) Stripping leading/trailing whitespace.
+      2) Optionally removing non-ASCII characters (if `allow_unicode=False`).
+      3) Removing punctuation / unsafe characters.
+      4) Normalizing runs of whitespace to a single separator.
+      5) Converting separators to either underscore (snake) or hyphen (kebab).
+      6) Optionally lowercasing.
 
     Examples:
-        "My Paper Title"      -> "My-Paper-Title"
-        "  A   B   C  "       -> "A-B-C"
-        "Title\\twith\\nspace" -> "Title-with-space"
+        slugify("Planck: Results, Paper I", style="kebab")
+            -> "Planck-Results-Paper-I"
+        slugify("  A   B\\tC  ", style="snake")
+            -> "A_B_C"
+        slugify("Title with — unicode", style="kebab", allow_unicode=False)
+            -> "Title-with-unicode"
+
+    Args:
+        text: Input string.
+        style: Output separator style: "snake" uses "_", "kebab" uses "-".
+        lowercase: If True, lowercase the output.
+        allow_unicode: If False, strip non-ASCII characters.
+        collapse_runs: If True, collapse runs of separators/whitespace to one.
+
+    Returns:
+        A slugified string. Returns "" if `text` is empty/whitespace.
+
+    Raises:
+        ValueError: If `style` is not one of {"snake", "kebab"}.
+    """
+    if not text or not text.strip():
+        return ""
+
+    s = text.strip()
+
+    if not allow_unicode:
+        # Strip non-ASCII characters. (Simple + dependency-free.)
+        s = s.encode("ascii", errors="ignore").decode("ascii")
+
+    # Remove punctuation / unsafe chars (keep word chars, whitespace, hyphen).
+    s = re.compile(r"[^\w\s-]+").sub("", s)
+
+    # Normalize all whitespace to a single space.
+    s = re.compile(r"\s+").sub(" ", s).strip()
+    if not s:
+        return ""
+
+    sep = "_" if style == "snake" else "-" if style == "kebab" else None
+    if sep is None:
+        raise ValueError(
+            f"Unknown style: {style!r}. Expected 'snake' or 'kebab'."
+        )
+
+    # Replace spaces with the separator.
+    s = s.replace(" ", sep)
+
+    if collapse_runs:
+        # Collapse repeated separators (e.g., "__" -> "_", "--" -> "-")
+        s = re.sub(re.escape(sep) + r"{2,}", sep, s).strip(sep)
+
+    if lowercase:
+        s = s.lower()
+
+    return s
+
+
+def hyphenate_string(string: str) -> str:
+    """
+    Backwards-compatible wrapper for kebab-case slugification.
 
     Args:
         string: Input string.
 
     Returns:
-        A hyphen-separated version of the input string.
+        Kebab-case slug of the input.
     """
-    if not string:
-        return ""
+    return slugify(string, style="kebab")
 
-    # Normalize all whitespace (spaces, tabs, newlines) to a single space
-    normalized = re.compile(r"\s+").sub(" ", string.strip())
-
-    # Replace spaces with hyphens
-    return normalized.replace(" ", "-")
 
 def snakestyle_string(string: str) -> str:
     """
-    Replace intervals in a string with underscores
+    Backwards-compatible wrapper for snake_case slugification.
 
     Args:
-        string (str): the string whose intervals will be replaced
+        string: Input string.
 
     Returns:
-        str: the original string with intervals replaced with underscores
+        snake_case slug of the input.
     """
-    string = re.sub(" +", ' ', string)
-    string = string.replace(' ', '_')
-    return string
+    return slugify(string, style="snake")
+
 
 def rename_folder(
     path: str,
