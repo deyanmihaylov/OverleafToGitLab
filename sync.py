@@ -1,14 +1,15 @@
 from abc import ABC
 
-import subprocess
-from git import Repo
-import gitlab
-import os
-from pathlib import Path
 import argparse
-import getpass
-import shutil
+import subprocess
 import logging
+import os
+import shutil
+import getpass
+import gitlab
+from pathlib import Path
+
+from git import Repo
 from pylatexenc.latex2text import LatexNodes2Text
 
 from utils import (
@@ -214,9 +215,16 @@ class SyncedRepo(ABC):
             ],
             cwd=self.directory,
         )
-        
+
+
     def push_to_GitLab(self) -> None:
-        run(["git", "push", "gitlab"], cwd=self.directory)
+        """
+        Push the current branch to GitLab and set upstream.
+
+        This is more robust than `git push gitlab` for newly created repos.
+        """
+        run(["git", "push", "-u", "gitlab", "HEAD"], cwd=self.directory)
+
 
     def commit(self, message: str, *, allow_empty: bool = False) -> None:
         """
@@ -238,8 +246,10 @@ class SyncedRepo(ABC):
                 return
             raise
 
+
     def push(self) -> None:
         run(["git", "push"], cwd=self.directory)
+
 
     def _commit_and_push(self, message: str) -> None:
         """Commit staged changes (if any) and push."""
@@ -251,6 +261,7 @@ class SyncedRepo(ABC):
             return
         self.push()
 
+
     def add_GitLab_CI(self) -> None:
         shutil.copyfile(
             os.path.join(self.cwd, "src/sample_gitlab_CI.yml"),
@@ -258,12 +269,14 @@ class SyncedRepo(ABC):
         )
         run(["git", "add", ".gitlab-ci.yml"], cwd=self.directory)
 
+
     def add_Readme(self) -> None:
         readme_path = os.path.join(self.directory, "README.md")
         with open(readme_path, "w", encoding="utf-8", newline="\n") as f:
             f.write(f"[Latest manuscript](https://deyanmihaylov.gitlab.io/{self.hash}/main.pdf)\n")
 
         run(["git", "add", "README.md"], cwd=self.directory)
+
 
     def __call__(self) -> None:
         """
