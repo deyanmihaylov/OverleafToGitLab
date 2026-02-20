@@ -187,17 +187,31 @@ class SyncedRepo(ABC):
         self.gitlab_ssh_url = self.response.ssh_url_to_repo
 
 
-    def add_GitLab_remote(self) -> None:
-        # Add gitlab remote (if it already exists, you may want to handle that later)
-        run(["git", "remote", "add", "gitlab", self.gitlab_ssh_url], cwd=self.directory)
+    def _add_GitLab_remote(self) -> None:
+        """Add GitLab remote and configure origin push URLs."""
+        if not self.gitlab_ssh_url:
+            raise ValueError(
+                "gitlab_ssh_url is not set; call _create_empty_GitLab_repo()"
+            )
+
+        run(
+            ["git", "remote", "add", "gitlab", self.gitlab_ssh_url],
+            cwd=self.directory,
+        )
 
         # Configure origin push URLs to include both Overleaf and GitLab
         run(
-            ["git", "remote", "set-url", "origin", "--add", "--push", self.overleaf_git_url],
+            [
+                "git", "remote", "set-url", "origin", "--add", "--push",
+                self.overleaf_git_url,
+            ],
             cwd=self.directory,
         )
         run(
-            ["git", "remote", "set-url", "origin", "--add", "--push", self.gitlab_ssh_url],
+            [
+                "git", "remote", "set-url", "origin", "--add", "--push",
+                self.gitlab_ssh_url,
+            ],
             cwd=self.directory,
         )
         
@@ -287,7 +301,7 @@ class SyncedRepo(ABC):
 
         # Link the local (Overleaf) repository to the new GitLab repository
         logger.info("Linking the local repository to the new GitLab repository")
-        self.add_GitLab_remote()
+        self._add_GitLab_remote()
 
         # Push the project to the linked GitLab repository
         logger.info("Pushing to the new GitLab repository")
