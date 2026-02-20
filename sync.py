@@ -80,6 +80,7 @@ class SyncedRepo(ABC):
         self.snakestyle_title: Optional[str] = None
 
     def _parse_input(self) -> Tuple[str, str, str]:
+        """Parse Overleaf identifier into (web_url, git_url, hash)."""
         return get_urls_and_hash(self.input_url_or_hash)
 
     def download_Overleaf_project(self) -> None:
