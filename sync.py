@@ -129,20 +129,15 @@ class SyncedRepo(ABC):
             title_text, style="snake", lowercase=False,
         )
 
-    # def rename_directory(self) -> None:
-    #     if not self.snakestyle_title:
-    #         raise ValueError(
-    #             "snakestyle_title is not set; call get_title() first."
-    #         )
 
-    #     self.new_directory = self.input_dir / self.snakestyle_title
-    #     rename_folder(
-    #         str(self.directory), str(self.new_directory),
-    #         exist_ok=False,
-    #     )
-    #     self.directory = self.new_directory
+    def _rename_directory(self) -> None:
+        """
+        Rename the cloned directory to the snake-case title slug.
 
-    def rename_directory(self) -> None:
+        Raises:
+            ValueError: If `_get_title()` has not been run.
+            FileExistsError/OSError: Propagated from `rename_folder`.
+        """
         if not self.snakestyle_title:
             raise ValueError(
                 "snakestyle_title is not set; call _get_title() first."
@@ -269,7 +264,7 @@ class SyncedRepo(ABC):
 
         # Rename the directory to the project title
         logger.info("Renaming the project directory")
-        self.rename_directory()
+        self._rename_directory()
 
         # Create a new repository on GitLab
         logger.info("Creating a new GitLab repository")
