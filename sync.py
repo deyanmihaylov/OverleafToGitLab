@@ -147,6 +147,24 @@ class SyncedRepo(ABC):
         rename_folder(self.directory, new_dir, exist_ok=False)
         self.directory = new_dir
 
+
+    def _get_gitlab_token(self) -> str:
+        """Load GitLab token from env, secret.txt, or interactive prompt."""
+        token = os.getenv("GITLAB_OVERLEAF")
+        if token:
+            return token
+
+        secret_path = self.repo_root / "secret.txt"
+        if secret_path.is_file():
+            token = secret_path.read_text(encoding="utf-8").strip()
+            if token:
+                return token
+
+        token = getpass.getpass("Enter GitLab access token:\n")
+        os.environ["GITLAB_OVERLEAF"] = token
+        return token
+    
+
     def create_empty_GitLab_repo(self):
         if "GITLAB_OVERLEAF" in os.environ:
             gitlab_token = os.getenv("GITLAB_OVERLEAF")
