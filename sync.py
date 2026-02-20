@@ -165,30 +165,27 @@ class SyncedRepo(ABC):
         return token
     
 
-    def create_empty_GitLab_repo(self):
-        if "GITLAB_OVERLEAF" in os.environ:
-            gitlab_token = os.getenv("GITLAB_OVERLEAF")
-        else:
-            try:
-                with open("./secret.txt", "r") as f:
-                    gitlab_token = f.read().strip()
-            except BaseException as e:
-                gitlab_token = getpass.getpass("Enter GitLab access token:\n")
-                os.environ["GITLAB_OVERLEAF"] = gitlab_token
+    def _create_empty_GitLab_repo(self) -> None:
+        """Create an empty GitLab project and store its URLs on the instance."""
+        token = self._get_gitlab_token()
 
         gl = gitlab.Gitlab(
             "https://gitlab.com/",
-            private_token=gitlab_token,
+            private_token=token,
             api_version=4,
         )
         gl.auth()
-        self.response = gl.projects.create({
-            "name": self.title,
-            "path": self.hash,
-        })
+
+        self.response = gl.projects.create(
+            {
+                "name": self.title,
+                "path": self.hash,
+            }
+        )
 
         self.gitlab_web_url = self.response.web_url
         self.gitlab_ssh_url = self.response.ssh_url_to_repo
+
 
     def add_GitLab_remote(self) -> None:
         # Add gitlab remote (if it already exists, you may want to handle that later)
@@ -286,7 +283,7 @@ class SyncedRepo(ABC):
 
         # Create a new repository on GitLab
         logger.info("Creating a new GitLab repository")
-        self.create_empty_GitLab_repo()
+        self._create_empty_GitLab_repo()
 
         # Link the local (Overleaf) repository to the new GitLab repository
         logger.info("Linking the local repository to the new GitLab repository")
