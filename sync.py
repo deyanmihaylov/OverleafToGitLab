@@ -107,17 +107,11 @@ class SyncedRepo(ABC):
         Repo.clone_from(self.overleaf_git_url, self.target_directory)
         self.download_success = True
 
-    # def get_title(self) -> None:
-    #     self.title = get_title_from_LaTeX_project(str(self.target_directory))
-    #     self.title = LatexNodes2Text().latex_to_text(self.title)
-    #     self.title = self.title.replace(":", "").replace(",", "")
-
-    #     self.hyphenated_title = hyphenate_string(self.title)
-    #     self.snakestyle_title = snakestyle_string(self.title)
-
     def _get_title(self) -> None:
         """
         Extract title from LaTeX sources and derive slug variants.
+
+        If no \\title{...} is found, falls back to using the project hash.
         """
         raw_title = get_title_from_LaTeX_project(self.target_directory)
 
