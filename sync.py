@@ -11,13 +11,15 @@ import shutil
 import logging
 from pylatexenc.latex2text import LatexNodes2Text
 
-from typing import Tuple, Optional
-
 from utils import (
     run, get_urls_and_hash, get_title_from_LaTeX_project,
     slugify,
     rename_folder,
 )
+
+from typing import Tuple, Optional, Union
+
+PathLike = Union[str, Path]
 
 
 logger = logging.getLogger(__name__)
@@ -27,10 +29,9 @@ class SyncedRepo(ABC):
     def __init__(
         self,
         url_or_hash: str,
-        target_dir: str | Path,
+        target_dir: PathLike,
     ) -> None:
-        """
-        Create a sync session for one Overleaf project.
+        """Create a sync session for one Overleaf project.
 
         Args:
             url_or_hash: Overleaf project URL (web or git) or project hash.
@@ -40,14 +41,17 @@ class SyncedRepo(ABC):
             ValueError: If `target_dir` is None.
             NotADirectoryError: If `target_dir` is not an existing directory.
         """
-        self.input_url_or_hash = url_or_hash
-
         if target_dir is None:
             raise ValueError("The target directory cannot be None")
-        
+
+        self.input_url_or_hash = url_or_hash
         self.input_dir = Path(target_dir)
+
         if not self.input_dir.is_dir():
             raise NotADirectoryError(f"{self.input_dir} is not a directory")
+
+        # Repo root (so running from another cwd works)
+        self.repo_root: Path = Path(__file__).resolve().parent
 
         # Parse input early (hash is required to build paths)
         self.overleaf_web_url: Optional[str]
@@ -74,9 +78,6 @@ class SyncedRepo(ABC):
         self.title: Optional[str] = None
         self.hyphenated_title: Optional[str] = None
         self.snakestyle_title: Optional[str] = None
-
-        # Repo root (so running from another directory works)
-        self.repo_root: Path = Path(__file__).resolve().parent
 
     def _parse_input(self) -> Tuple[str, str, str]:
         return get_urls_and_hash(self.input_url_or_hash)
@@ -198,8 +199,25 @@ class SyncedRepo(ABC):
     def push_to_GitLab(self) -> None:
         run(["git", "push", "gitlab"], cwd=self.directory)
 
-    def commit(self, message: str) -> None:
-        run(["git", "commit", "-m", message], cwd=self.directory)
+    def commit(self, message: str, *, allow_empty: bool = False) -> None:
+        """
+        Commit staged changes in the repository.
+
+        Args:
+            message: Commit message.
+            allow_empty: If True, do not raise when there is nothing to commit.
+
+        Raises:
+            subprocess.CalledProcessError: If the git command fails for reasons
+                other than an empty commit (unless `allow_empty=True`).
+        """
+        try:
+            run(["git", "commit", "-m", message], cwd=self.directory)
+        except subprocess.CalledProcessError as e:
+            if allow_empty:
+                logger.info("No changes to commit: %s", message)
+                return
+            raise
 
     def push(self) -> None:
         run(["git", "push"], cwd=self.directory)
