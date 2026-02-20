@@ -1,13 +1,12 @@
 # import os
 # import glob
-import re
 # import sys
+import re
 import subprocess
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from typing import Tuple, Sequence, Union, List, Literal
-
 
 PathLike = Union[str, Path]
 
@@ -454,7 +453,9 @@ def rename_folder(
 
     if dst.exists():
         if exist_ok:
-            logger.info("Directory already named '%s'; skipping rename.", dst.name)
+            logger.info(
+                "Directory already named '%s'; skipping rename.", dst.name,
+            )
             return
         raise FileExistsError(f"Target directory already exists: {dst}")
 
