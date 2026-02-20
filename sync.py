@@ -257,14 +257,12 @@ class SyncedRepo(ABC):
         # Add a GitLab CI script for compiling the project
         logger.info("Adding GitLab CI configuration")
         self.add_GitLab_CI()
-        self.commit("Add GitLab CI")
-        self.push()
+        self._commit_and_push("Add GitLab CI")
 
         # Add README file to the project
         logger.info("Adding README")
         self.add_Readme()
-        self.commit("Add Readme.md")
-        self.push()
+        self._commit_and_push("Add README.md")
 
         # add setup.sh
 
