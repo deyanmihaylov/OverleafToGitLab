@@ -115,18 +115,28 @@ class SyncedRepo(ABC):
             title_text, style="snake", lowercase=False,
         )
 
+    # def rename_directory(self) -> None:
+    #     if not self.snakestyle_title:
+    #         raise ValueError(
+    #             "snakestyle_title is not set; call get_title() first."
+    #         )
+
+    #     self.new_directory = self.input_dir / self.snakestyle_title
+    #     rename_folder(
+    #         str(self.directory), str(self.new_directory),
+    #         exist_ok=False,
+    #     )
+    #     self.directory = self.new_directory
+
     def rename_directory(self) -> None:
         if not self.snakestyle_title:
             raise ValueError(
-                "snakestyle_title is not set; call get_title() first."
+                "snakestyle_title is not set; call _get_title() first."
             )
 
-        self.new_directory = self.input_dir / self.snakestyle_title
-        rename_folder(
-            str(self.directory), str(self.new_directory),
-            exist_ok=False,
-        )
-        self.directory = self.new_directory
+        new_dir = self.input_dir / self.snakestyle_title
+        rename_folder(self.directory, new_dir, exist_ok=False)
+        self.directory = new_dir
 
     def create_empty_GitLab_repo(self):
         if "GITLAB_OVERLEAF" in os.environ:
@@ -191,37 +201,55 @@ class SyncedRepo(ABC):
         run(["git", "add", "README.md"], cwd=self.directory)
 
     def __call__(self) -> None:
+        """
+        Sync an Overleaf project to a newly-created GitLab repository.
+
+        This workflow:
+        1) Clones the Overleaf git repository locally.
+        2) Extracts the LaTeX title and computes slug variants.
+        3) Renames the local directory based on the title slug.
+        4) Creates an empty GitLab repository via the GitLab API.
+        5) Adds a GitLab remote and configures push URLs.
+        6) Pushes the repository to GitLab.
+        7) Adds CI configuration and README, commits, and pushes.
+
+        Raises:
+            Exception: Propagates exceptions raised by underlying steps (git, IO,
+                GitLab API). Fail-fast behavior is intentional for automation.
+        """
         # Clone the repository from Overleaf to a local directory
-        print("Cloning the repository from Overleaf")
+        logger.info("Cloning the repository from Overleaf")
         self.download_Overleaf_project()
 
         # Get the project title from the .tex file
-        print("Extracting the project title:")
+        logger.info("Extracting the project title")
         self._get_title()
-        print(self.title)
+        logger.info("Title: %s", self.title)
 
         # Rename the directory to the project title
-        print("Renaming the project directory")
+        logger.info("Renaming the project directory")
         self.rename_directory()
 
         # Create a new repository on GitLab
-        print("Creating a new GitLab repository")
+        logger.info("Creating a new GitLab repository")
         self.create_empty_GitLab_repo()
 
         # Link the local (Overleaf) repository to the new GitLab repository
-        print("Linking the local repository to the new GitLab repository")
+        logger.info("Linking the local repository to the new GitLab repository")
         self.add_GitLab_remote()
 
         # Push the project to the linked GitLab repository
-        print("Pushing to the new GitLab repository")
+        logger.info("Pushing to the new GitLab repository")
         self.push_to_GitLab()
 
         # Add a GitLab CI script for compiling the project
+        logger.info("Adding GitLab CI configuration")
         self.add_GitLab_CI()
         self.commit("Add GitLab CI")
         self.push()
 
         # Add README file to the project
+        logger.info("Adding README")
         self.add_Readme()
         self.commit("Add Readme.md")
         self.push()
